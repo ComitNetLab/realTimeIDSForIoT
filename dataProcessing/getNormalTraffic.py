@@ -5,13 +5,13 @@ initPath = 'UNSW_2018_IoT_Botnet_Dataset_'
 fileType = '.csv'
 delimiter = ','
 outputPath = 'IoT_Botnet_Dataset_Normal_Traffic.csv'
-attackPos = 1
+attackPos = 32
 
 
 def load_csv(filename):
     with open(filename, 'r') as f:
         reader = csv.reader(f)
-        return list(filter(lambda x: x[attackPos] == 1, list(reader)))
+        return list(filter(lambda x: x[attackPos] == '0', list(reader)))
 
 
 with open(outputPath, mode='w') as oFile:
@@ -24,6 +24,6 @@ with open(outputPath, mode='w') as oFile:
         data = load_csv(fileName)
         len(data)
         writer.writerows(data)
-        print('data filtered and saved.')
+        print('data filtered and pushed')
 
-    print('File saved in: ', outputPath)
+print('File saved in: ', outputPath)
