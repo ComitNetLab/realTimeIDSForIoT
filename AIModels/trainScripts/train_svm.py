@@ -1,6 +1,4 @@
-from _distutils_hack import shim
 from sklearn.metrics import classification_report, plot_confusion_matrix
-from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
 from sklearn.impute import SimpleImputer
@@ -8,10 +6,7 @@ from sklearn.pipeline import Pipeline
 from joblib import dump, load
 from sklearn.svm import SVC
 import pandas as pd
-import numpy as np
 import time
-import glob
-import os
 import sys
 
 # Constants
