@@ -10,19 +10,13 @@ import time
 import sys
 
 # Constants
-PATH = 'C:/Users/server22/Downloads/tesisInfo/data/grouped/'
+PATH = '/home/andres/data/grouped/'
 DATASET = {'normal': PATH + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
            'ddos': PATH + 'IoT_Botnet_dataset_DDoS_FULL_Traffic.csv',
            'dos': PATH + 'IoT_Botnet_Dataset_DoS_FULL_Traffic.csv',
            'os_fingerprint': PATH + 'IoT_Botnet_Dataset_OS_Fingerprint_FULL_Traffic.csv',
            'service_scan': PATH + 'IoT_Botnet_Dataset_Service_Scan_FULL_Traffic.csv',
-           
-           
-           'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
-           'keylogging_nxormal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
-           'data_exfiltration': PATH + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
-           'data_exfiltration_normal' : PATH + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
-           }
+           'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv'}
 
 # Get the features and category of attack selected for training
 if len(sys.argv) < 3:
@@ -32,7 +26,7 @@ attack = sys.argv[1].lower()
 features = [f.lower() for f in sys.argv[2:]]
 
 # Load the dataset
-all_files = [DATASET[attack], DATASET[ attack + '_normal']]
+all_files = [DATASET[attack], DATASET['normal']]
 cols = ['pkSeqID', 'stime', 'flgs', 'proto', 'saddr', 'sport', 'daddr', 'dport', 'pkts', 'bytes', 'state', 'ltime',
         'seq', 'dur', 'mean', 'stddev', 'smac', 'dmac', 'sum', 'min', 'max', 'soui', 'doui', 'sco', 'dco', 'spkts',
         'dpkts', 'sbytes', 'dbytes', 'rate', 'srate', 'drate', 'attack', 'category', 'subcategory']
@@ -43,44 +37,15 @@ data = pd.concat((pd.read_csv(f, low_memory=False, names=cols) for f in all_file
 # Change columns names to lower case
 data.columns = data.columns.str.lower()
 
-# Change type of ports columns to avoid errors caused by null values
-# TODO Mari estuvo aquí, así se cambia a float
-data.sport = data.sport.astype(float)
-data.dport = data.dport.astype(float)
-
 # Get features and labels
 x = data[features]
 y = data['attack']
 
-print(x[0])
 enc = OrdinalEncoder(encoded_missing_value=-1)
 x_trans = enc.fit_transform(x)
 
 # Separate train and test
 x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
-
-# Pipeline for transformation and model
-estimators = [('imputer', SimpleImputer(strategy='constant', fill_value=-1)),
-              ('normalize', MinMaxScaler(feature_range=(0, 1))),
-              ('clf', SVC(random_state=1234))]
-pipeline = Pipeline(estimators)
-
-# Param grid for GridSearch
-param_grid = dict(clf__C=[0.001, 0.01, 0.1, 1],
-                  clf__kernel=['linear', 'poly', 'rbf', 'sigmoid'],
-                  clf__class_weight=['balanced', None],
-                  clf__decision_function_shape=['ovo', 'ovr'])
-
-# GridSearch
-grid_search = GridSearchCV(pipeline, param_grid=param_grid, cv=5, verbose=3, scoring='accuracy', error_score='raise')
-grid_search.fit(x_train, y_train)
-
-# Save results of GridSearch
-results = pd.DataFrame(grid_search.cv_results_)
-results.to_csv(f'../trainResults/training-svm-{attack}.csv')
-
-# Save best model
-dump(grid_search.best_estimator_, f'../bestModels/svm-{attack}.joblib')
 
 # Load best model
 model = load(f'../bestModels/svm-{attack}.joblib')
