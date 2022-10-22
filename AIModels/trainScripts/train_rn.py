@@ -1,5 +1,5 @@
 from sklearn.metrics import classification_report, plot_confusion_matrix
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -106,8 +106,8 @@ param_grid = dict(clf__nn1=[16, 8],
                   )
 
 # GridSearch
-grid_search = RandomizedSearchCV(pipeline, param_grid, cv=5, n_iter=10, verbose=3, scoring='accuracy',
-                                 error_score='raise', random_state=123)
+grid_search = GridSearchCV(pipeline, param_grid=param_grid, cv=5, verbose=3, scoring='accuracy',
+                                 error_score='raise')
 grid_search.fit(x_train, y_train)
 
 # Save results of GridSearch
