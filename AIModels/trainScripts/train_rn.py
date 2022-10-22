@@ -11,6 +11,7 @@ import tensorflow as tf
 
 from joblib import dump, load
 import pandas as pd
+import numpy as np
 import time
 import sys
 
@@ -23,7 +24,7 @@ DATASET = {'normal': PATH + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
            'service_scan': PATH + 'IoT_Botnet_Dataset_Service_Scan_FULL_Traffic.csv',
 
            'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
-           'keylogging_nxormal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
+           'keylogging_normal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
            'data_exfiltration': PATH + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
            'data_exfiltration_normal': PATH + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
            }
@@ -49,14 +50,14 @@ data.columns = data.columns.str.lower()
 
 # Change type of ports columns to avoid errors caused by null values
 # TODO Mari estuvo aquí, así se cambia a float
-data.sport = data.sport.astype(float)
-data.dport = data.dport.astype(float)
+# data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
+data.sport = data.sport.astype(str)
+data.dport = data.dport.astype(str)
 
 # Get features and labels
 x = data[features]
 y = data['attack']
 
-print(x[0])
 enc = OrdinalEncoder(encoded_missing_value=-1)
 x_trans = enc.fit_transform(x)
 
@@ -98,14 +99,14 @@ pipeline = Pipeline(estimators)
 
 # Param grid for GridSearch
 # TODO Cambiar valores de nn1 y nn2 por potencias de 2 menores que el número de features y mayores a 1
-param_grid = dict(clf__nn1=[1024, 512, 256],
-                  clf__nn2=[256, 128, 64],
+param_grid = dict(clf__nn1=[16, 8],
+                  clf__nn2=[4, 2],
                   clf__dropout=[0.0, 0.1, 0.2, 0.5],
                   clf__hidden_activation=['relu', 'sigmoid']
                   )
 
 # GridSearch
-grid_search = RandomizedSearchCV(pipeline, param_grid=param_grid, cv=5, n_iter=10, verbose=3, scoring='accuracy',
+grid_search = RandomizedSearchCV(pipeline, param_grid, cv=5, n_iter=10, verbose=3, scoring='accuracy',
                                  error_score='raise', random_state=123)
 grid_search.fit(x_train, y_train)
 

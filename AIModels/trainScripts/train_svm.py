@@ -19,7 +19,7 @@ DATASET = {'normal': PATH + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
            
            
            'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
-           'keylogging_nxormal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
+           'keylogging_normal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
            'data_exfiltration': PATH + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
            'data_exfiltration_normal' : PATH + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
            }
