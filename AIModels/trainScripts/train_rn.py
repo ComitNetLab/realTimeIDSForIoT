@@ -1,10 +1,10 @@
-from sklearn.metrics import classification_report, plot_confusion_matrix
+from sklearn.metrics import classification_report, plot_confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
-from tensorflow.keras.layers import Dense, Dropout, Activation, Input
+from tensorflow.keras.layers import Dense, Dropout, Input
 from keras.wrappers.scikit_learn import KerasClassifier
 from tensorflow.keras.models import Sequential
 import tensorflow as tf
@@ -115,19 +115,24 @@ results = pd.DataFrame(grid_search.cv_results_)
 results.to_csv(f'../trainResults/training-rn-{attack}.csv')
 
 # Save best model
-dump(grid_search.best_estimator_, f'../bestModels/rn-{attack}.joblib')
+# dump(grid_search.best_estimator_, f'../bestModels/rn-{attack}.joblib')
+# Save rn weights
+grid_search.best_estimator_['clf'].model.save(f'../bestModels/rn-{attack}.h5')
 
 # Load best model
-model = load(f'../bestModels/rn-{attack}.joblib')
+# model = load(f'../bestModels/rn-{attack}.joblib')
+loaded_model = tf.keras.models.load_model(f'../bestModels/rn-{attack}.h5')
+
 
 # Test metrics
 start = time.time()
-y_pred = model.predict(x_test)
+y_pred = loaded_model.predict(x_test)
 end = time.time()
 execution_time = end - start
+y_pred = [y[0] for y in y_pred]
 
 # Save confusion matrix
-cm = plot_confusion_matrix(model, x_test, y_test, display_labels=[0, 1], values_format='d')
+cm = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, labels=[0, 1])
 cm.figure_.savefig(f"../testResults/testing-rn-{attack}-image.png")
 
 # Save metrics report

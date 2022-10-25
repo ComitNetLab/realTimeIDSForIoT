@@ -1,0 +1,25 @@
+import socket
+import platform
+from parsePacket import *
+
+print("Init program")
+# Initial config
+system = platform.system()
+if system.startswith('Win'):
+    print("Windows Recognized")
+    packetInterface = socket.AF_INET
+elif system.startswith('Lin'):
+    print("Linux recognized")
+    packetInterface = socket.PF_PACKET
+else:
+	    print('Unkown system, exit script')
+    sys.exit()
+
+print("Creating socket")
+s = socket.socket(packetInterface, socket.SOCK_RAW, socket.ntohs(3))
+print("Start loop")
+while True:
+    raw, add = s.recvfrom(65535)
+    print(ethernetData(s, raw))
+
+

@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from joblib import dump, load
 from sklearn.svm import SVC
 import pandas as pd
+import numpy as np
 import time
 import sys
 
@@ -44,7 +45,9 @@ data = pd.concat((pd.read_csv(f, low_memory=False, names=cols) for f in all_file
 data.columns = data.columns.str.lower()
 
 # Change type of ports columns to avoid errors caused by null values
-# TODO Mari estuvo aquí, así se cambia a float
+# TODO Mari estuvo aquí, así se cambia a float y se pasa a nan si contiene 'x'
+data.sport = data.sport.apply(lambda x: np.NaN if str(x).__contains__('x') else x)
+data.dport = data.dport.apply(lambda x: np.NaN if str(x).__contains__('x') else x)
 data.sport = data.sport.astype(float)
 data.dport = data.dport.astype(float)
 
@@ -52,7 +55,6 @@ data.dport = data.dport.astype(float)
 x = data[features]
 y = data['attack']
 
-print(x[0])
 enc = OrdinalEncoder(encoded_missing_value=-1)
 x_trans = enc.fit_transform(x)
 
