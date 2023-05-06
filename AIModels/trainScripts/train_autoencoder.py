@@ -53,7 +53,6 @@ data = pd.concat((pd.read_csv(f, low_memory=False, names=cols) for f in all_file
 data.columns = data.columns.str.lower()
 
 # Change type of ports columns to avoid errors caused by null values
-# TODO Mari estuvo aquí, así se cambia a float
 # data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
 data.sport = data.sport.astype(str)
 data.dport = data.dport.astype(str)
@@ -129,7 +128,8 @@ grid_search.best_estimator_['clf'].model.save(f'../bestModels/autoencoder-{attac
 # Load best model
 # model = load(f'../bestModels/rn-{attack}.joblib')
 loaded_model = tf.keras.models.load_model(f'../bestModels/autoencoder-{attack}.h5')
-print(loaded_model.summary())
+with open(f'../testResults/model-summary-autoencoder-{attack}.txt', 'a') as f:
+    print(loaded_model.summary(), file=f)
 
 # Test metrics
 start = time.time()
