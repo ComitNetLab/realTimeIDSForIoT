@@ -1,7 +1,7 @@
 import sys
 import joblib
 import paho.mqtt.client as mqtt
-from validModels import get_model_function
+from realTimeIDSForIoT.modules.detection.ValidModels import AttackTypes, get_model_function
 
 # ------------------ argv validation ------------------
 if len(sys.argv) < 2:
@@ -14,14 +14,14 @@ if len(sys.argv) < 3:
 
 # ------------------ Model ------------------
 # Get the model name from the command-line argument
-modelName = sys.argv[1]
+modelName=sys.argv[1]
 
 # Load the model
-model = joblib.load('./models/' + modelName)
+model=joblib.load('./models/' + modelName)
 
 
 # ------------------ MQTT ------------------
-brokerAddress = sys.argv[2]
+brokerAddress=sys.argv[2]
 brokerPort=1883
 
 username='<username>'
@@ -32,7 +32,7 @@ Callback function for MQTT connection event
 subscribes the module to the topic 'atkDetection' 
 '''
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
+    print("Connected with result code " + str(rc))
     client.subscribe("atkDetection")
 
 '''
@@ -45,6 +45,12 @@ def on_message(client, userdata, msg):
     processing_function = get_model_function(modelName.split('.')[0])
     processing_function(payload, model)
 
+'''
+Publishes the attack type to the topic 'intrusionDetected'
+'''
+def alert_intrusion(atk_type: AttackTypes, recorded_data: str):
+    alert_message = atk_type.value + ':' + recorded_data
+    client.publish('intrusionDetected', alert_message)
 
 
 # ------------------ Main ------------------

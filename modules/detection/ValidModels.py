@@ -24,3 +24,10 @@ def get_model_function(model) -> Callable[[str, any], None]:
     else:
         raise ValueError('Invalid model name, check valid models in ./modules/detection/validModels.py')
     
+
+class AttackTypes(Enum):
+    RECONNANCE = 'RECONNANCE',
+    FUZZING = 'FUZZING',
+    KEYLOGGER = 'KEYLOGGER',
+    DDOS = 'DDOS',
+    
