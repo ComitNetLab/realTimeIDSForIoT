@@ -1,18 +1,22 @@
 import express, { Express, Request, Response } from "express";
-import { MqttHanlder } from "./mqtt/mqtt-handler";
 import dotenv from "dotenv";
-import statisticsRouter from "./statistics/statistics-handler";
+import { MqttHanlder } from "./mqtt/mqtt-handler.js";
+import statisticsRouter from "./statistics/statistics-handler.js";
+import { connectToDatabase } from "./database/DatabaseConn.js";
+import { createAttackDetected } from "./database/models/AttackDetected.js";
 
 /**
  * --------------------------------
  * Set up the server
  * --------------------------------
  */
-
+console.log("Starting server...");
 dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 app.use(express.json());
+
+await connectToDatabase();
 
 /**
  * --------------------------------
@@ -37,6 +41,6 @@ statistics.connect();
 app.use("/", statisticsRouter);
 
 // Start the server
-const server = app.listen(port, () => {
+app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/`);
 });

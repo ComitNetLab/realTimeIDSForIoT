@@ -1,4 +1,5 @@
 import mqtt, { MqttClient } from "mqtt";
+import { onMessage } from "./mqtt-service.js";
 
 /**
  * Class to handle the MQTT connection
@@ -46,10 +47,7 @@ export class MqttHanlder {
 
     this.mqttClient.subscribe(this.topic, { qos: 0 });
 
-    this.mqttClient.on("message", (topic, message) => {
-      console.log("Messageeee");
-      console.log("Alert MQTT message: ", topic, message.toString());
-    });
+    this.mqttClient.on("message", onMessage);
 
     this.mqttClient.on("close", () => {
       console.log(`Alert MQTT client disconnected`);
