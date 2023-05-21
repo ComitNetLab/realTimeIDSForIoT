@@ -1,6 +1,8 @@
 import mqtt, { MqttClient } from "mqtt";
 import { onMessage } from "./mqtt-service.js";
 
+const DEBUG = process.env.DEBUG === "true";
+
 /**
  * Class to handle the MQTT connection
  */
@@ -41,8 +43,10 @@ export class MqttHanlder {
     });
 
     this.mqttClient.on("connect", () => {
-      console.log(`Alert MQTT client connected`);
-      console.log(`${this.host}`);
+      if (DEBUG) {
+        console.log(`Alert MQTT client connected`);
+        console.log(`${this.host}`);
+      }
     });
 
     this.mqttClient.subscribe(this.topic, { qos: 0 });
@@ -50,7 +54,7 @@ export class MqttHanlder {
     this.mqttClient.on("message", onMessage);
 
     this.mqttClient.on("close", () => {
-      console.log(`Alert MQTT client disconnected`);
+      if (DEBUG) console.log(`Alert MQTT client disconnected`);
     });
   };
 }

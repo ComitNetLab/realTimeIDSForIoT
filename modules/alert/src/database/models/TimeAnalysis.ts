@@ -24,18 +24,18 @@ export const TimeAnalysis = mongoose.model("TimeAnalysis", timeAnalysisSchema);
 /**
  * Create a new time analysis statistics
  * @param {ITimeAnalysis} payload - The time analysis statistics creation payload
- * @returns {Promise<ITimeAnalysis>} The created time analysis statistics
  */
-export const createTimeAnalysis = async (payload: ITimeAnalysis) => {
-  const ta = new TimeAnalysis(payload);
-  return await ta.save();
+export const createTimeAnalysis = async (
+  payload: ITimeAnalysis
+): Promise<void> => {
+  await TimeAnalysis.create(new TimeAnalysis(payload));
 };
 
 /**
  * Update the actual time Analysis statistics
  * @param {string} dateTime ISO format
  */
-export const updateTimeAnalysis = async (dateTime: String) => {
+export const updateTimeAnalysis = async (dateTime: String): Promise<void> => {
   await TimeAnalysis.updateOne({ dateTime }, { $inc: { numRequests: 1 } });
 };
 
