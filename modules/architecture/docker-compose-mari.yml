@@ -1,0 +1,18 @@
+version: '3.6'
+
+volumes:
+  front:
+    name: "frontend"
+    driver: local
+
+services:
+  frontend:
+    container_name: cemue_frontend
+    image: cemue_frontend:latest
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - front:/home/node/app
+    env_file:
+      - ./.env
