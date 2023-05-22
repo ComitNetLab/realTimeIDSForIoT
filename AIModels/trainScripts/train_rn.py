@@ -5,7 +5,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
 from tensorflow.keras.layers import Dense, Dropout, Input
-from keras.wrappers.scikit_learn import KerasClassifier
+# from keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier, KerasRegressor
 from tensorflow.keras.models import Sequential
 import tensorflow as tf
 
@@ -58,11 +59,38 @@ data.dport = data.dport.astype(str)
 x = data[features]
 y = data['attack']
 
-enc = OrdinalEncoder(encoded_missing_value=-1)
-x_trans = enc.fit_transform(x)
-
 # Separate train and test
 x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
+
+# Transformers for different datatypes
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean', fill_value=-1)),
+    ('scaler', MinMaxScaler(feature_range=(0, 1)))
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant')),
+    ('encoder', OneHotEncoder())
+])
+
+# Arrays with features names for each datatype
+numeric_features = data.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = data.select_dtypes(include=['object']).columns
+
+# Join transformers
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('numeric', numeric_transformer, numeric_features),
+        ('categorical', categorical_transformer, categorical_features)
+    ]
+)
+
+# Train de preprocessor in all the data & transform the train data
+preprocessor = preprocessor.fit(x)
+x_train = preprocessor.transform(x_train).toarray()
+
+# Save preprocessor pipeline
+dump(preprocessor, f'./trainResults/preprocessor-rn-{attack}.pkl')
 
 
 # Define Neural Network
@@ -88,45 +116,47 @@ def train_nn(nn1=512, nn2=128, dropout=0.5, lr=0.001, hidden_activation='relu'):
 
 # Model used by GridSearch
 # TODO epochs can change
-modelCV = KerasClassifier(build_fn=train_nn, epochs=30, batch_size=200, verbose=1, shuffle=True)
-
+modelCV = KerasClassifier(model=train_nn, verbose=1, validation_split=0.2, shuffle=True)
 
 # Pipeline for transformation and model
-estimators = [('imputer', SimpleImputer(strategy='constant', fill_value=-1)),
-              ('normalize', MinMaxScaler(feature_range=(0, 1))),
-              ('clf', modelCV)]
+estimators = [('clf', modelCV)]
 pipeline = Pipeline(estimators)
 
 # Param grid for GridSearch
 # TODO Cambiar valores de nn1 y nn2 por potencias de 2 menores que el número de features y mayores a 1
-param_grid = dict(clf__nn1=[16, 8],
-                  clf__nn2=[4, 2],
-                  clf__dropout=[0.0, 0.1, 0.2, 0.5],
-                  clf__hidden_activation=['relu', 'sigmoid']
+param_grid = dict(clf__model__nn1=[16, 8],
+                  clf__model__nn2=[4, 2],
+                  clf__model__dropout=[0.0, 0.1, 0.2, 0.5],
+                  clf__model__hidden_activation=['relu', 'sigmoid'],
+                  clf__batch_size=[40, 80, 160],
+                  clf__epochs=[10, 20, 50]
                   )
 
 # GridSearch
 grid_search = GridSearchCV(pipeline, param_grid=param_grid, cv=5, verbose=3, scoring='accuracy',
-                                 error_score='raise')
+                           error_score='raise')
 grid_search.fit(x_train, y_train)
 
 # Save results of GridSearch
 results = pd.DataFrame(grid_search.cv_results_)
 results.to_csv(f'../trainResults/training-rn-{attack}.csv')
 
-# Save best model
-# dump(grid_search.best_estimator_, f'../bestModels/rn-{attack}.joblib')
 # Save rn weights
-grid_search.best_estimator_['clf'].model.save(f'../bestModels/rn-{attack}.h5')
+grid_search.best_estimator_['clf'].model_.save(f'../bestModels/rn-{attack}.h5')
+# Save model training history
+dump(grid_search.best_estimator_['clf'].history_, f'./trainResults/history-rn-{attack}.pkl')
+
 
 # Load best model
-# model = load(f'../bestModels/rn-{attack}.joblib')
 loaded_model = tf.keras.models.load_model(f'../bestModels/rn-{attack}.h5')
 
+# Load the preprocessor and transform the test data
+loaded_preprocessor = load(f'./trainResults/preprocessor-rn-{attack}.pkl')
+p_x_test = preprocessor.transform(x_test).toarray()
 
 # Test metrics
 start = time.time()
-y_pred = loaded_model.predict(x_test)
+y_pred = loaded_model.predict(p_x_test)
 end = time.time()
 execution_time = end - start
 y_pred = [y[0] for y in y_pred]

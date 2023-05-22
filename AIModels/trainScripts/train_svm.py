@@ -55,17 +55,42 @@ data.dport = data.dport.astype(float)
 x = data[features]
 y = data['attack']
 
-enc = OrdinalEncoder(encoded_missing_value=-1)
-x_trans = enc.fit_transform(x)
-
 # Separate train and test
 x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
 
+# Transformers for different datatypes
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean', fill_value=-1)),
+    ('scaler', MinMaxScaler(feature_range=(0, 1)))
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant')),
+    ('encoder', OneHotEncoder())
+])
+
+# Arrays with features names for each datatype
+numeric_features = data.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = data.select_dtypes(include=['object']).columns
+
+# Join transformers
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('numeric', numeric_transformer, numeric_features),
+        ('categorical', categorical_transformer, categorical_features)
+    ]
+)
+
+# Train de preprocessor in all the data & transform the train data
+preprocessor = preprocessor.fit(x)
+x_train = preprocessor.transform(x_train).toarray()
+
+# Save preprocessor pipeline
+dump(preprocessor, f'./trainResults/preprocessor-svm-{attack}.pkl')
+
 # Pipeline for transformation and model
-estimators = [('imputer', SimpleImputer(strategy='constant', fill_value=-1)),
-              ('normalize', MinMaxScaler(feature_range=(0, 1))),
-              ('clf', SVC(random_state=1234))]
-pipeline = Pipeline(estimators)
+estimator = [('clf', SVC(random_state=1234))]
+pipeline = Pipeline(estimator)
 
 # Param grid for GridSearch
 param_grid = dict(clf__C=[0.001, 0.01, 0.1, 1],
@@ -87,14 +112,18 @@ dump(grid_search.best_estimator_, f'../bestModels/svm-{attack}.joblib')
 # Load best model
 model = load(f'../bestModels/svm-{attack}.joblib')
 
+# Load the preprocessor and transform the test data
+loaded_preprocessor = load(f'./trainResults/preprocessor-svm-{attack}.pkl')
+p_x_test = preprocessor.transform(x_test).toarray()
+
 # Test metrics
 start = time.time()
-y_pred = model.predict(x_test)
+y_pred = model.predict(p_x_test)
 end = time.time()
 execution_time = end - start
 
 # Save confusion matrix
-cm = plot_confusion_matrix(model, x_test, y_test, display_labels=[0, 1], values_format='d')
+cm = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, labels=[0, 1])
 cm.figure_.savefig(f"../testResults/testing-svm-{attack}-image.png")
 
 # Save metrics report

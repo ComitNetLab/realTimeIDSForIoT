@@ -63,25 +63,21 @@ data.dport = data.dport.astype(str)
 x = data[features]
 y = data['attack']
 
-enc = OrdinalEncoder(encoded_missing_value=-1)
-x_trans = enc.fit_transform(x)
-
 # Separate train and test
 x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
 
 # Transformers for different datatypes
 numeric_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='mean', fill_value=-1))
-    , ('scaler', MinMaxScaler(feature_range=(0, 1)))
+    ('imputer', SimpleImputer(strategy='mean', fill_value=-1)),
+    ('scaler', MinMaxScaler(feature_range=(0, 1)))
 ])
 
 categorical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant'))
-    , ('encoder', OneHotEncoder())
+    ('imputer', SimpleImputer(strategy='constant')),
+    ('encoder', OneHotEncoder())
 ])
 
 # Arrays with features names for each datatype
-#
 numeric_features = data.select_dtypes(include=['int64', 'float64']).columns
 categorical_features = data.select_dtypes(include=['object']).columns
 
@@ -96,7 +92,6 @@ preprocessor = ColumnTransformer(
 # Train de preprocessor in all the data & transform the train data
 preprocessor = preprocessor.fit(x)
 x_train = preprocessor.transform(x_train).toarray()
-x_train.shape
 
 # Save preprocessor pipeline
 dump(preprocessor, f'./trainResults/preprocessor-autoencoder-{attack}.pkl')
