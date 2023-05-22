@@ -1,12 +1,15 @@
-from sklearn.metrics import classification_report, plot_confusion_matrix, ConfusionMatrixDisplay, \
+from sklearn.metrics import classification_report, ConfusionMatrixDisplay, \
     recall_score, accuracy_score, precision_score
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
+from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder, StandardScaler, \
+    OneHotEncoder
+from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
 from tensorflow.keras.layers import Dense, Dropout, Input
-from keras.wrappers.scikit_learn import KerasClassifier
+# from keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier, KerasRegressor
 from tensorflow.keras.models import Sequential
 import tensorflow as tf
 
@@ -65,14 +68,45 @@ x_trans = enc.fit_transform(x)
 
 # Separate train and test
 x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
-x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=123, shuffle=True)
+
+# Transformers for different datatypes
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean', fill_value=-1))
+    , ('scaler', MinMaxScaler(feature_range=(0, 1)))
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant'))
+    , ('encoder', OneHotEncoder())
+])
+
+# Arrays with features names for each datatype
+#
+numeric_features = data.select_dtypes(include=['int64', 'float64']).columns
+categorical_features = data.select_dtypes(include=['object']).columns
+
+# Join transformers
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('numeric', numeric_transformer, numeric_features),
+        ('categorical', categorical_transformer, categorical_features)
+    ]
+)
+
+# Train de preprocessor in all the data & transform the train data
+preprocessor = preprocessor.fit(x)
+x_train = preprocessor.transform(x_train).toarray()
+x_train.shape
+
+# Save preprocessor pipeline
+dump(preprocessor, f'./trainResults/preprocessor-autoencoder-{attack}.pkl')
 
 
 # Define Neural Network
 def train_nn(nn1=512, nn2=128, dropout=0.5, lr=0.001, hidden_activation='relu'):
     nn = Sequential(name='nn_attacks')
     # Input layer
-    nn.add(Input(batch_input_shape=(None, len(features)), name='Capa_Entrada'))
+    nn.add(Input(batch_input_shape=(None, x_train.shape[1]), name='Capa_Entrada'))
     # Encoder
     nn.add(Dense(nn1, activation=hidden_activation, name='Encoder'))
     nn.add(Dropout(dropout, name='Dropout_1_{0}'.format(dropout)))
@@ -82,70 +116,79 @@ def train_nn(nn1=512, nn2=128, dropout=0.5, lr=0.001, hidden_activation='relu'):
     nn.add(Dense(nn1, activation=hidden_activation, name='Decoder'))
     nn.add(Dropout(dropout, name='Dropout_2_{0}'.format(dropout)))
     # Ouput layer, softmax activiation
-    nn.add(Dense(len(features), activation='tanh', name='Capa_Salida'))
+    nn.add(Dense(x_train.shape[1], activation='tanh', name='Capa_Salida'))
 
-    nn.compile(loss='mean_squared_error', optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
-               metrics=['mean_squared_error', 'mae', 'accuracy'])
+    nn.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
+               metrics=['mse', 'mae'])
 
     print(nn.summary())
     return nn
 
 
 # Model used by GridSearch
-modelCV = KerasClassifier(build_fn=train_nn, verbose=1, shuffle=True)
+modelCV = KerasRegressor(model=train_nn, verbose=1, validation_split=0.2, shuffle=True)
 
-# Pipeline for transformation and model
-estimators = [('imputer', SimpleImputer(strategy='constant', fill_value=-1)),
-              ('normalize', MinMaxScaler(feature_range=(0, 1))),
-              ('clf', modelCV)]
-pipeline = Pipeline(estimators)
+# Pipeline for model
+estimator = [('autoencoder', modelCV)]
+pipeline = Pipeline(estimator)
 
 # Param grid for GridSearch
 # TODO Cambiar valores de nn1 y nn2 por potencias de 2 menores que el número de features y mayores a 1
-param_grid = dict(clf__nn1=[16, 8],
-                  clf__nn2=[4, 2],
-                  clf__dropout=[0.0, 0.1, 0.2, 0.5],
-                  clf__hidden_activation=['relu' 'sigmoid'],
-                  clf__batch_size=[40, 80, 160],
-                  clf__epochs=[10, 20, 50]
+param_grid = dict(autoencoder__model__nn1=[16, 8],
+                  autoencoder__model__nn2=[4, 2],
+                  autoencoder__model__dropout=[0.0, 0.1, 0.2, 0.5],
+                  autoencoder__model__hidden_activation=['relu' 'sigmoid'],
+                  autoencoder__batch_size=[40, 80, 160],
+                  autoencoder__epochs=[10, 20, 50]
                   )
 
 # GridSearch
 grid_search = GridSearchCV(pipeline, param_grid=param_grid, cv=5, verbose=1, error_score='raise')
-grid_search.fit(x_train[y_train == 0], x_train[y_train == 0],
-                clf__validation_data=(x_val[y_val == 0], x_val[y_val == 0]))
+# TODO Obtener como parámetro la clase con la que se quiere entrenar el autoencoder
+grid_search.fit(x_train[y_train == 0], x_train[y_train == 0])
 
 # Save results of GridSearch
 results = pd.DataFrame(grid_search.cv_results_)
 results.to_csv(f'../trainResults/training-autoencoder-{attack}.csv')
 
-# Save best model
-# dump(grid_search.best_estimator_, f'../bestModels/rn-{attack}.joblib')
-# Save rn weights
-grid_search.best_estimator_['clf'].model.save(f'../bestModels/autoencoder-{attack}.h5')
+# Save best autoencoder weights
+grid_search.best_estimator_['autoencoder'].model_.save(f'../bestModels/autoencoder-{attack}.h5')
+# Save model training history
+dump(grid_search.best_estimator_['autoencoder'].history_, f'./trainResults/history-autoencoder-{attack}.pkl')
 
 # Load best model
-# model = load(f'../bestModels/rn-{attack}.joblib')
 loaded_model = tf.keras.models.load_model(f'../bestModels/autoencoder-{attack}.h5')
-with open(f'../testResults/model-summary-autoencoder-{attack}.txt', 'a') as f:
-    print(loaded_model.summary(), file=f)
+
+
+# Save the model architecture
+def print_summary(s):
+    with open(f'./model-summary-autoencoder-{attack}.txt', 'a') as f:
+        print(s, file=f)
+
+
+loaded_model.summary(print_fn=print_summary)
+
+# Load the preprocessor and transform the test data
+loaded_preprocessor = load(f'./trainResults/preprocessor-autoencoder-{attack}.pkl')
+
+p_x_test = preprocessor.transform(x_test).toarray()
 
 # Test metrics
 start = time.time()
-x_pred_normal = loaded_model.predict(x_test[y_test == 0])
-x_pred_attack = loaded_model.predict(x_test[y_test == 1])
+x_pred_normal = loaded_model.predict(p_x_test[y_test == 0])
+x_pred_attack = loaded_model.predict(p_x_test[y_test == 1])
 end = time.time()
 execution_time = end - start
-# x_pred = [x[0] for x in x_pred]
 
+# Calculate MSE
 normal_loss = tf.keras.losses.mse(
-    x_pred_normal, x_test[y_test == 0]
+    x_pred_normal, p_x_test[y_test == 0]
 )
 
 attack_loss = tf.keras.losses.mse(
-    x_pred_attack, x_test[y_test == 1]
+    x_pred_attack, p_x_test[y_test == 1]
 )
-# Calculate MSE
+
 normal_error = pd.DataFrame({'reconstruction_error': normal_loss,
                              'true_class': y_test[y_test == 0]})
 attack_error = pd.DataFrame({'reconstruction_error': attack_loss,
