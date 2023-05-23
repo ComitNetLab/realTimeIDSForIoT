@@ -8,24 +8,23 @@ import pandas as pd
 import sys
 
 
-def loadData():
-    print(sys.argv)
+def load_data():
     # Verify the data folders
     if len(sys.argv) < 3:
         raise ValueError('Please provide the data files path.')
-    PATH = sys.argv[1]
+    path = sys.argv[1]
 
     # Constants
-    DATASET = {'normal': PATH + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
-               'ddos': PATH + 'IoT_Botnet_dataset_DDoS_FULL_Traffic.csv',
-               'dos': PATH + 'IoT_Botnet_Dataset_DoS_FULL_Traffic.csv',
-               'os_fingerprint': PATH + 'IoT_Botnet_Dataset_OS_Fingerprint_FULL_Traffic.csv',
-               'service_scan': PATH + 'IoT_Botnet_Dataset_Service_Scan_FULL_Traffic.csv',
+    dataset = {'normal': path + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
+               'ddos': path + 'IoT_Botnet_dataset_DDoS_FULL_Traffic.csv',
+               'dos': path + 'IoT_Botnet_Dataset_DoS_FULL_Traffic.csv',
+               'os_fingerprint': path + 'IoT_Botnet_Dataset_OS_Fingerprint_FULL_Traffic.csv',
+               'service_scan': path + 'IoT_Botnet_Dataset_Service_Scan_FULL_Traffic.csv',
 
-               'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
-               'keylogging_normal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
-               'data_exfiltration': PATH + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
-               'data_exfiltration_normal': PATH + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
+               'keylogging': path + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
+               'keylogging_normal': path + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
+               'data_exfiltration': path + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
+               'data_exfiltration_normal': path + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
                }
 
     # Get the features and category of attack selected for training
@@ -36,7 +35,7 @@ def loadData():
     features = [f.lower() for f in sys.argv[3:]]
 
     # Load the dataset
-    all_files = [DATASET[attack], DATASET['normal']]
+    all_files = [dataset[attack], dataset['normal']]
     cols = ['pkSeqID', 'stime', 'flgs', 'proto', 'saddr', 'sport', 'daddr', 'dport', 'pkts', 'bytes', 'state', 'ltime',
             'seq', 'dur', 'mean', 'stddev', 'smac', 'dmac', 'sum', 'min', 'max', 'soui', 'doui', 'sco', 'dco', 'spkts',
             'dpkts', 'sbytes', 'dbytes', 'rate', 'srate', 'drate', 'attack', 'category', 'subcategory']
@@ -47,7 +46,7 @@ def loadData():
     data.columns = data.columns.str.lower()
 
     # Change type of ports columns to avoid errors caused by null values
-    # data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
+# data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
     data.sport = data.sport.astype(str)
     data.dport = data.dport.astype(str)
 
@@ -55,10 +54,12 @@ def loadData():
     x = data[features]
     y = data['attack']
 
-    return PATH, DATASET, attack, features, all_files, cols, data, x, y
+    print('Finished data loading')
+
+    return attack, x, y
 
 
-def createPreProcessor(x, y, attack):
+def create_pre_processor(x, y, attack):
     # Separate train and test
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=123, shuffle=True)
 
@@ -90,7 +91,8 @@ def createPreProcessor(x, y, attack):
     x_train = preprocessor.transform(x_train).toarray()
 
     # Save preprocessor pipeline
-    dump(preprocessor, f'../trainResults/preprocessor-rn-{attack}.pkl')
+    dump(preprocessor, f'../trainResults/preprocessor-{attack}.pkl')
 
+    print('Finished creating preprocessor')
     return x_train, y_train, x_test, y_test, preprocessor
 

@@ -1,13 +1,14 @@
-from sklearn.metrics import classification_report, plot_confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder
-from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from joblib import dump, load
 from sklearn.svm import SVC
 import pandas as pd
-import numpy as np
 import time
+from load_data import load_data, create_pre_processor
+
+attack, x, y = load_data()
+x_train, y_train, x_test, y_test, preprocessor = create_pre_processor(x, y, attack)
 
 # Pipeline for transformation and model
 estimator = [('clf', SVC(random_state=1234))]
@@ -34,7 +35,7 @@ dump(grid_search.best_estimator_, f'../bestModels/svm-{attack}.joblib')
 model = load(f'../bestModels/svm-{attack}.joblib')
 
 # Load the preprocessor and transform the test data
-loaded_preprocessor = load(f'./trainResults/preprocessor-svm-{attack}.pkl')
+loaded_preprocessor = load(f'../trainResults/preprocessor-{attack}.pkl')
 p_x_test = preprocessor.transform(x_test).toarray()
 
 # Test metrics
@@ -51,3 +52,5 @@ cm.figure_.savefig(f"../testResults/testing-svm-{attack}-image.png")
 cf = classification_report(y_test, y_pred)
 with open(f"../testResults/testing-svm-{attack}-report.txt", 'w') as file:
     file.write(cf)
+
+print('Script Finished!')

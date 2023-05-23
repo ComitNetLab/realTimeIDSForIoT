@@ -10,10 +10,10 @@ from joblib import dump, load
 import pandas as pd
 import numpy as np
 import time
-from trainScripts.loadData import loadData, createPreProcessor
+from load_data import load_data, create_pre_processor
 
-PATH, DATASET, attack, features, all_files, cols, data, x, y = loadData()
-x_train, y_train, x_test, y_test, preprocessor = createPreProcessor(x, y, attack)
+attack, x, y = load_data()
+x_train, y_train, x_test, y_test, preprocessor = create_pre_processor(x, y, attack)
 
 
 # Define Neural Network
@@ -83,7 +83,7 @@ def print_summary(s):
 loaded_model.summary(print_fn=print_summary)
 
 # Load the preprocessor and transform the test data
-loaded_preprocessor = load(f'../trainResults/preprocessor-autoencoder-{attack}.pkl')
+loaded_preprocessor = load(f'../trainResults/preprocessor-{attack}.pkl')
 
 p_x_test = preprocessor.transform(x_test).toarray()
 
@@ -138,3 +138,5 @@ cm.figure_.savefig(f"../testResults/testing-autoencoder-{attack}-image.png")
 cf = classification_report(error_df.true_class, y_pred)
 with open(f"../testResults/testing-autoencoder-{attack}-report.txt", 'w') as file:
     file.write(cf)
+
+print('Script Finished!')

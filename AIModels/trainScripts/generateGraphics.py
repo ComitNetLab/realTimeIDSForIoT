@@ -1,17 +1,10 @@
-from sklearn.metrics import classification_report, plot_confusion_matrix
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.metrics import classification_report
 from joblib import load
-import pandas as pd
 import time
+from trainScripts.load_data import load_data, create_pre_processor
 
-
-
-enc = OrdinalEncoder(encoded_missing_value=-1)
-x_trans = enc.fit_transform(x)
-
-# Separate train and test
-x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
+attack, data, x, y = load_data()
+x_test, y_test = create_pre_processor(x, y, attack)
 
 # Load best model
 model = load(f'../bestModels/svm-{attack}.joblib')
