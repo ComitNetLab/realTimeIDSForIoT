@@ -1,100 +1,19 @@
-from sklearn.metrics import classification_report, ConfusionMatrixDisplay, \
-    recall_score, accuracy_score, precision_score
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder, StandardScaler, \
-    OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
+from sklearn.metrics import classification_report, ConfusionMatrixDisplay
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
-
 from tensorflow.keras.layers import Dense, Dropout, Input
-# from keras.wrappers.scikit_learn import KerasClassifier
-from scikeras.wrappers import KerasClassifier, KerasRegressor
+from scikeras.wrappers import KerasRegressor
 from tensorflow.keras.models import Sequential
 import tensorflow as tf
-
 import matplotlib.pyplot as plt
-import seaborn as sns
-
 from joblib import dump, load
 import pandas as pd
 import numpy as np
 import time
-import sys
+from trainScripts.loadData import loadData, createPreProcessor
 
-# Constants
-PATH = 'C:/Users/server22/Downloads/tesisInfo/data/grouped/'
-DATASET = {'normal': PATH + 'IoT_Botnet_Dataset_Normal_Traffic.csv',
-           'ddos': PATH + 'IoT_Botnet_dataset_DDoS_FULL_Traffic.csv',
-           'dos': PATH + 'IoT_Botnet_Dataset_DoS_FULL_Traffic.csv',
-           'os_fingerprint': PATH + 'IoT_Botnet_Dataset_OS_Fingerprint_FULL_Traffic.csv',
-           'service_scan': PATH + 'IoT_Botnet_Dataset_Service_Scan_FULL_Traffic.csv',
-           'keylogging': PATH + 'IoT_Botnet_Dataset_Keylogging_FULL_Traffic.csv',
-           'keylogging_normal': PATH + 'IoT_Botnet_Dataset_Normal_Keylogging_Traffic.csv',
-           'data_exfiltration': PATH + 'IoT_Botnet_Dataset_Data_Exfiltration_FULL_Traffic.csv',
-           'data_exfiltration_normal': PATH + 'IoT_Botnet_Dataset_Normal_Data_Exfiltration_Traffic.csv',
-           }
-
-# Get the features and category of attack selected for training
-if len(sys.argv) < 3:
-    raise ValueError('Please provide the features and attack to train.')
-
-attack = sys.argv[1].lower()
-features = [f.lower() for f in sys.argv[2:]]
-
-# Load the dataset
-all_files = [DATASET[attack], DATASET['normal']]
-cols = ['pkSeqID', 'stime', 'flgs', 'proto', 'saddr', 'sport', 'daddr', 'dport', 'pkts', 'bytes', 'state', 'ltime',
-        'seq', 'dur', 'mean', 'stddev', 'smac', 'dmac', 'sum', 'min', 'max', 'soui', 'doui', 'sco', 'dco', 'spkts',
-        'dpkts', 'sbytes', 'dbytes', 'rate', 'srate', 'drate', 'attack', 'category', 'subcategory']
-# 'flgs' 'proto' 'sport' 'dport' 'pkts' 'bytes' 'state' 'ltime' 'dur' 'mean' 'stddev' 'smac' 'dmac' 'sum' 'min' 'max'
-# 'soui' 'doui' 'sco' 'dco' 'spkts' 'dpkts' 'sbytes' 'dbytes' 'rate' 'srate' 'drate' 'attack'
-data = pd.concat((pd.read_csv(f, low_memory=False, names=cols) for f in all_files), ignore_index=True)
-
-# Change columns names to lower case
-data.columns = data.columns.str.lower()
-
-# Change type of ports columns to avoid errors caused by null values
-# data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
-data.sport = data.sport.astype(str)
-data.dport = data.dport.astype(str)
-
-# Get features and labels
-x = data[features]
-y = data['attack']
-
-# Separate train and test
-x_train, x_test, y_train, y_test = train_test_split(x_trans, y, test_size=0.2, random_state=123, shuffle=True)
-
-# Transformers for different datatypes
-numeric_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='mean', fill_value=-1)),
-    ('scaler', MinMaxScaler(feature_range=(0, 1)))
-])
-
-categorical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant')),
-    ('encoder', OneHotEncoder())
-])
-
-# Arrays with features names for each datatype
-numeric_features = data.select_dtypes(include=['int64', 'float64']).columns
-categorical_features = data.select_dtypes(include=['object']).columns
-
-# Join transformers
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('numeric', numeric_transformer, numeric_features),
-        ('categorical', categorical_transformer, categorical_features)
-    ]
-)
-
-# Train de preprocessor in all the data & transform the train data
-preprocessor = preprocessor.fit(x)
-x_train = preprocessor.transform(x_train).toarray()
-
-# Save preprocessor pipeline
-dump(preprocessor, f'./trainResults/preprocessor-autoencoder-{attack}.pkl')
+PATH, DATASET, attack, features, all_files, cols, data, x, y = loadData()
+x_train, y_train, x_test, y_test, preprocessor = createPreProcessor(x, y, attack)
 
 
 # Define Neural Network
@@ -132,7 +51,7 @@ pipeline = Pipeline(estimator)
 param_grid = dict(autoencoder__model__nn1=[16, 8],
                   autoencoder__model__nn2=[4, 2],
                   autoencoder__model__dropout=[0.0, 0.1, 0.2, 0.5],
-                  autoencoder__model__hidden_activation=['relu' 'sigmoid'],
+                  autoencoder__model__hidden_activation=['relu', 'sigmoid'],
                   autoencoder__batch_size=[40, 80, 160],
                   autoencoder__epochs=[10, 20, 50]
                   )
@@ -149,7 +68,7 @@ results.to_csv(f'../trainResults/training-autoencoder-{attack}.csv')
 # Save best autoencoder weights
 grid_search.best_estimator_['autoencoder'].model_.save(f'../bestModels/autoencoder-{attack}.h5')
 # Save model training history
-dump(grid_search.best_estimator_['autoencoder'].history_, f'./trainResults/history-autoencoder-{attack}.pkl')
+dump(grid_search.best_estimator_['autoencoder'].history_, f'../trainResults/history-autoencoder-{attack}.pkl')
 
 # Load best model
 loaded_model = tf.keras.models.load_model(f'../bestModels/autoencoder-{attack}.h5')
@@ -157,14 +76,14 @@ loaded_model = tf.keras.models.load_model(f'../bestModels/autoencoder-{attack}.h
 
 # Save the model architecture
 def print_summary(s):
-    with open(f'./model-summary-autoencoder-{attack}.txt', 'a') as f:
+    with open(f'../trainResults/model-summary-autoencoder-{attack}.txt', 'a') as f:
         print(s, file=f)
 
 
 loaded_model.summary(print_fn=print_summary)
 
 # Load the preprocessor and transform the test data
-loaded_preprocessor = load(f'./trainResults/preprocessor-autoencoder-{attack}.pkl')
+loaded_preprocessor = load(f'../trainResults/preprocessor-autoencoder-{attack}.pkl')
 
 p_x_test = preprocessor.transform(x_test).toarray()
 
