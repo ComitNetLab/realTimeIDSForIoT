@@ -130,6 +130,8 @@ dmypy.json
 
 # Pycharm stuff
 .idea
+AiModels/.idea
+AiModels/data
 
 # Mac stuff
 .DS_Store 
