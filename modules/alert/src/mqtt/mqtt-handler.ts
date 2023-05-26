@@ -1,8 +1,6 @@
 import mqtt, { MqttClient } from "mqtt";
 import { onMessage } from "./mqtt-service.js";
 
-const DEBUG = process.env.DEBUG === "true";
-
 /**
  * Class to handle the MQTT connection
  */
@@ -36,6 +34,7 @@ export class MqttHanlder {
    * Connect to the MQTT broker and subscribe to the topic
    */
   connect = () => {
+    const DEBUG = process.env.DEBUG === "true";
     this.mqttClient = mqtt.connect(this.host);
 
     this.mqttClient.on("error", (error) => {

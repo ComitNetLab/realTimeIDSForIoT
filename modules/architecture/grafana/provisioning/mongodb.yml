@@ -1,0 +1,12 @@
+apiVersion: 1
+datasources:
+  - name: Mongo
+    type: grafana-mongodb-datasource
+    basicAuth: false
+    enabled: true
+    editable: true
+    jsonData:
+      connection: mongodb://localhost:27017
+      user: mongoo
+    secureJsonData:
+      password: mongoo

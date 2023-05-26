@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
 
-const DEBUG = process.env.DEBUG === "true";
-
 /**
  * Connect to the MongoDB database
  */
 export const connectToDatabase = async () => {
+  const DEBUG = process.env.DEBUG === "true";
   if (DEBUG) console.log("Creating DatabaseConn");
 
   // Check if login is required

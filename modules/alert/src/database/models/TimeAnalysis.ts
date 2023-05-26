@@ -45,5 +45,5 @@ export const updateTimeAnalysis = async (dateTime: String): Promise<void> => {
  */
 export const getLastTimeAnalysis = async (): Promise<ITimeAnalysis | null> => {
   const temp = await TimeAnalysis.find().sort({ _id: -1 }).limit(1);
-  return temp.length ? temp[0] : null;
+  return temp.length >= 1 ? temp[0] : null;
 };

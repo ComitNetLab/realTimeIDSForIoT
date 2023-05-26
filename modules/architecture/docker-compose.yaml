@@ -1,5 +1,4 @@
 version: "3"
-
 services:
   mongo:
     container_name: mongo
@@ -9,13 +8,30 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: mongoo
     ports:
       - "27017:27017"
-  mqtt:
-    container_name: mqtt
-    image: eclipse-mosquitto
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
     ports:
-      - "1883:1883"
+      - "3001:3000"
+    depends_on:
+      - mongo
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-mongodb-datasource
     volumes:
-      - ./mosquitto
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+#      - .grafana/:/var/lib/grafana/
+      - grafana-data:/var/lib/grafana
+  
+#  mqtt:
+#    container_name: mqtt
+#    image: eclipse-mosquitto
+#    ports:
+#      - "1883:1883"
+#    volumes:
+#      - ./mosquitto
 volumes:
-  data:
-    name: "mqtt-data"
+  grafana-data:
+    name: "grafana-data"
+#  mqtt-data:
+#    name: "mqtt-data"
+  

@@ -1,7 +1,7 @@
 import sys
 import joblib
 import paho.mqtt.client as mqtt
-from realTimeIDSForIoT.modules.detection.ValidModels import AttackTypes, get_model_function
+from ValidModels import AttackTypes, get_model_function
 
 # ------------------ argv validation ------------------
 if len(sys.argv) < 2:
