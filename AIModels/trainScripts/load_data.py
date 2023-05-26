@@ -47,8 +47,12 @@ def load_data():
 
     # Change type of ports columns to avoid errors caused by null values
 # data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
-    data.sport = data.sport.astype(str)
-    data.dport = data.dport.astype(str)
+#    data.sport = data.sport.astype(str)
+#    data.dport = data.dport.astype(str)
+    data.sport = data.sport.apply(lambda x: -1 if str(x).__contains__('x') or str(x).__contains__('login') else x)
+    data.dport = data.dport.apply(lambda x: -1 if str(x).__contains__('x') or str(x).__contains__('login') else x)
+    data.sport = data.sport.astype(float)
+    data.dport = data.dport.astype(float)
 
     # Get features and labels
     x = data[features]
@@ -88,7 +92,8 @@ def create_pre_processor(x, y, attack):
 
     # Train de preprocessor in all the data & transform the train data
     preprocessor = preprocessor.fit(x)
-    x_train = preprocessor.transform(x_train).toarray()
+    x_train = preprocessor.transform(x_train)#.toarray()
+    print(x_train.shape)
 
     # Save preprocessor pipeline
     dump(preprocessor, f'../trainResults/preprocessor-{attack}.pkl')
