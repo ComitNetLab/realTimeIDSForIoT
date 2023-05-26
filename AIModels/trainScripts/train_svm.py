@@ -36,7 +36,7 @@ model = load(f'../bestModels/svm-{attack}.joblib')
 
 # Load the preprocessor and transform the test data
 loaded_preprocessor = load(f'../trainResults/preprocessor-{attack}.pkl')
-p_x_test = preprocessor.transform(x_test).toarray()
+p_x_test = preprocessor.transform(x_test)#.toarray()
 
 # Test metrics
 start = time.time()
