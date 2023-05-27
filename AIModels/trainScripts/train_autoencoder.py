@@ -29,7 +29,7 @@ def train_nn(nn1=512, nn2=128, dropout=0.5, lr=0.001, hidden_activation='relu'):
     # Decoder
     nn.add(Dense(nn1, activation=hidden_activation, name='Decoder'))
     nn.add(Dropout(dropout, name='Dropout_2_{0}'.format(dropout)))
-    # Ouput layer, softmax activiation
+    # Output layer, softmax activation
     nn.add(Dense(x_train.shape[1], activation='tanh', name='Capa_Salida'))
 
     nn.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
@@ -120,7 +120,7 @@ for name, group in groups:
             label="Attack" if name == 1 else "Normal")
 ax.hlines(threshold_fixed, ax.get_xlim()[0], ax.get_xlim()[1], colors="r", zorder=100, label='Threshold')
 ax.legend()
-plt.title("Reconstruction error for normal and attcak data")
+plt.title("Reconstruction error for normal and attack data")
 plt.ylabel("Reconstruction error")
 plt.xlabel("Data point index")
 plt.savefig(f"../testResults/error-autoencoder-{attack}-image.png")

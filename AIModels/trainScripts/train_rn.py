@@ -36,7 +36,6 @@ def train_nn(nn1=512, nn2=128, dropout=0.5, lr=0.001, hidden_activation='relu'):
 
 
 # Model used by GridSearch
-# TODO epochs can change
 modelCV = KerasClassifier(model=train_nn, verbose=1, validation_split=0.2, shuffle=True)
 
 # Pipeline for transformation and model

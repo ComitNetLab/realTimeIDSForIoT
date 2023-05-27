@@ -8,7 +8,24 @@ import pandas as pd
 import sys
 
 
+def check_port_data(x: str) -> bool:
+    """
+    Check the anomalies values in the ports fields. The 0x are ports that are mapped to hex values in a argus,
+    and two cases "login" and "nut" that are on the os_fingerprint and service_scan data
+    """
+    return str(x).__contains__('x') or str(x).__contains__('login') or str(x).__contains__('nut')
+
+
 def load_data():
+    """
+    Function that loads the botIoT data grouped by attacks that are going to be used for algorithms training.
+    The function returns the attack name for the preprocessor saving creation,
+    in x, the features to be used in the training
+    in y, the objective variable of the training
+    The data is preprocessed to exclude the columns that are not necessary from the pre analysis given by argus
+    open source tool and to transform the data to the needed types.
+    :return: attack name, x and y values for training
+    """
     # Verify the data folders
     if len(sys.argv) < 3:
         raise ValueError('Please provide the data files path.')
@@ -39,18 +56,13 @@ def load_data():
     cols = ['pkSeqID', 'stime', 'flgs', 'proto', 'saddr', 'sport', 'daddr', 'dport', 'pkts', 'bytes', 'state', 'ltime',
             'seq', 'dur', 'mean', 'stddev', 'smac', 'dmac', 'sum', 'min', 'max', 'soui', 'doui', 'sco', 'dco', 'spkts',
             'dpkts', 'sbytes', 'dbytes', 'rate', 'srate', 'drate', 'attack', 'category', 'subcategory']
-    # 'flgs' 'proto' 'sport' 'dport' 'pkts' 'bytes' 'state' 'ltime' 'dur' 'mean' 'stddev' 'smac' 'dmac' 'sum' 'min'
-    # 'max' 'soui' 'doui' 'sco' 'dco' 'spkts' 'dpkts' 'sbytes' 'dbytes' 'rate' 'srate' 'drate' 'attack'
     data = pd.concat((pd.read_csv(f, low_memory=False, names=cols) for f in all_files), ignore_index=True)
     # Change columns names to lower case
     data.columns = data.columns.str.lower()
 
     # Change type of ports columns to avoid errors caused by null values
-# data = data.replace('0x0303', np.NaN).replace('0xa549', np.NaN).replace('0x80d3', np.NaN).replace('0x72ba', np.NaN)
-#    data.sport = data.sport.astype(str)
-#    data.dport = data.dport.astype(str)
-    data.sport = data.sport.apply(lambda x: -1 if str(x).__contains__('x') or str(x).__contains__('login') else x)
-    data.dport = data.dport.apply(lambda x: -1 if str(x).__contains__('x') or str(x).__contains__('login') else x)
+    data.sport = data.sport.apply(lambda x: -1 if check_port_data(str(x)) else x)
+    data.dport = data.dport.apply(lambda x: -1 if check_port_data(str(x)) else x)
     data.sport = data.sport.astype(float)
     data.dport = data.dport.astype(float)
 
@@ -64,6 +76,16 @@ def load_data():
 
 
 def create_pre_processor(x, y, attack):
+    """
+    Function that creates a preprocessing pipeline that can be used to receive the data and map it to the rows
+    processed by the trained model. The pipeline is used for training also.
+    Categorical features are transformed and oneHotEncoding is applied on them.
+    Numerical features are normalized into a range [0,1]
+    :param x: features of the preprocessing
+    :param y: objective feature
+    :param attack: attack name to save the pipeline with trainingAlgorithm-attackName
+    :return: data divided for training and the preprocessor
+    """
     # Separate train and test
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=123, shuffle=True)
 
@@ -92,7 +114,7 @@ def create_pre_processor(x, y, attack):
 
     # Train de preprocessor in all the data & transform the train data
     preprocessor = preprocessor.fit(x)
-    x_train = preprocessor.transform(x_train)#.toarray()
+    x_train = preprocessor.transform(x_train)  # .toarray()
     print(x_train.shape)
 
     # Save preprocessor pipeline
