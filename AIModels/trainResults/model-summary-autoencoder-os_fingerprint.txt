@@ -1,0 +1,21 @@
+Model: "nn_attacks"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ Encoder (Dense)             (None, 16)                688       
+                                                                 
+ Dropout_1_0.0 (Dropout)     (None, 16)                0         
+                                                                 
+ Bottleneck (Dense)          (None, 4)                 68        
+                                                                 
+ Decoder (Dense)             (None, 16)                80        
+                                                                 
+ Dropout_2_0.0 (Dropout)     (None, 16)                0         
+                                                                 
+ Capa_Salida (Dense)         (None, 42)                714       
+                                                                 
+=================================================================
+Total params: 1550 (6.05 KB)
+Trainable params: 1550 (6.05 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________

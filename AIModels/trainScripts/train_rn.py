@@ -72,7 +72,7 @@ loaded_model = tf.keras.models.load_model(f'../bestModels/rn-{attack}.h5')
 
 # Load the preprocessor and transform the test data
 loaded_preprocessor = load(f'../trainResults/preprocessor-{attack}.pkl')
-p_x_test = preprocessor.transform(x_test).toarray()
+p_x_test = preprocessor.transform(x_test) # .toarray()
 
 # Test metrics
 start = time.time()
