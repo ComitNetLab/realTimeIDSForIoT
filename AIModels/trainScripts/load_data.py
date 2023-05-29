@@ -75,7 +75,7 @@ def load_data():
     return attack, x, y
 
 
-def create_pre_processor(x, y, attack):
+def create_pre_processor(x, y, attack, dump_preprocessor=True):
     """
     Function that creates a preprocessing pipeline that can be used to receive the data and map it to the rows
     processed by the trained model. The pipeline is used for training also.
@@ -118,7 +118,8 @@ def create_pre_processor(x, y, attack):
     print(x_train.shape)
 
     # Save preprocessor pipeline
-    dump(preprocessor, f'../trainResults/preprocessor-{attack}.pkl')
+    if dump_preprocessor:
+        dump(preprocessor, f'../trainResults/preprocessor-{attack}.pkl')
 
     print('Finished creating preprocessor')
     return x_train, y_train, x_test, y_test, preprocessor
